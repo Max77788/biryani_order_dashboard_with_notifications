@@ -77,7 +77,23 @@ def add_order_record():
         if 'items' in data:
             # Save the order to the selected collection and keep the reference
             order_collection.insert_one(order_to_pass)  # Assuming Order has a to_mongo method       
-            return jsonify({"response":"Order Successfully Posted with \"published:False\"!"})
+            last_inserted_document = order_collection.find().sort('_id', -1).limit(1)
+            # Since `find` returns a cursor, we convert it to a list to access the document
+            # If there is a document, it will be the first in the list
+            if last_inserted_document:
+                document_to_post = list(last_inserted_document)[0]
+                print(document_to_post)
+                # Update the 'published' attribute of the fetched document to True
+                result = order_collection.update_one({'_id': document_to_post['_id']}, {'$set': {'published': True}})
+
+                # Check if the update was successful
+                if result.matched_count > 0:
+                    print("Document updated successfully. Published set to True.")
+                    return "Document updated successfully. Published set to True."
+                else:
+                    print("Document not found for update.")
+                    return "Document not found for update."
+        return jsonify({"response":"Order Successfully Posted with \"published:False\"!"})
         
         if 'action' in data:
 
