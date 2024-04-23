@@ -9,7 +9,7 @@ from datetime import datetime
 
 load_dotenv(find_dotenv())
 
-app = Flask(__name__, template_folder="../templates")
+app = Flask(__name__)
 
 #disconnect()
 
