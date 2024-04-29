@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>View Orders</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&family=Montserrat:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+    <script src="https://cdn.socket.io/4.0.0/socket.io.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #232f3e;
+            color: #ddd;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.5s ease;
+        }
+        button {
+            background-color: #4CAF50; /* Green background to match notification box */
+            color: white; /* White text color */
+            padding: 15px 30px; /* Padding for better touch area */
+            font-family: 'Roboto', sans-serif; /* Consistent font family */
+            font-size: 1em; /* Adequate font size */
+            border: none; /* No border for a modern look */
+            border-radius: 10px; /* Rounded corners */
+            cursor: pointer; /* Pointer cursor on hover */
+            outline: none; /* Remove default focus outline */
+            transition: background-color 0.3s ease, transform 0.2s ease; /* Smooth transitions for interactions */
+        }
+
+        button:hover {
+            background-color: #45a049; /* Slightly darker green on hover for feedback */
+            transform: scale(1.05); /* Slight increase in size on hover */
+        }
+
+        button:focus {
+            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.4); /* White shadow to indicate focus */
+        }
+        h1 {
+            font-family: 'Montserrat', sans-serif;
+            color: #FFD700;
+            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 40px;
+        }
+        ul {
+            list-style-type: none;
+            padding: 0;
+        }
+        ul > li {
+            background-color: #1e272e;
+            margin-bottom: 20px;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(255,255,255,0.1);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        ul > li:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 12px rgba(255,255,255,0.2);
+        }
+        ul > li > ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 10px;
+            color: #eee;
+        }
+        li:last-child {
+            margin-bottom: 0;
+        }
+        .order-number {
+            font-weight: bold;
+            color: #eccc68;
+            font-size: 1.2em;
+        }
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 10px;
+            border-radius: 10px;
+            display: none;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        body, ul > li {
+            animation: fadeIn 1s;
+        }
+    </style>
+</head>
+<body>
+    <h1>{{restaurant_name}} Orders</h1>
+    
+    <button id="unlockAudio">Click to enable notifications</button>
+
+    <ul id="ordersList"></ul> <!-- Updated for AJAX loading -->
+    
+    <audio id="notificationSound" src="https://cdn.pixabay.com/download/audio/2024/02/06/audio_4d73e45600.mp3"></audio>
+
+    <div id="notification" class="notification"></div>
+    
+    <script type="text/javascript">
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        var audio = document.getElementById('notificationSound');
+        var audioEnabled = false; // State to track if audio is enabled
+
+        document.getElementById('unlockAudio').addEventListener('click', function() {
+            audioEnabled = true; // Set audio enabled flag
+            this.remove(); // Optionally remove the button after unlocking
+        });
+
+        socket.on('order_status', function(data) {
+            if (audioEnabled) {
+                audio.play().catch(function(error) {
+                    console.error("Playback failed:", error);
+                });
+            }
+            displayNotification(data.msg); // Replace alert with custom notification
+            fetchOrders(); // Fetch latest orders after getting a notification
+        });
+
+        function displayNotification(message) {
+            var notification = document.getElementById('notification');
+            notification.textContent = message;
+            notification.style.display = 'block';
+            setTimeout(() => { notification.style.display = 'none'; }, 3000);
+        }
+
+        function fetchOrders() {
+            axios.get('/api/orders')
+                .then(function (response) {
+                    const orders = response.data.orders;
+                    if (!Array.isArray(orders)) {
+                        console.error('Expected an array but got:', typeof orders);
+                        return;
+                    }
+                    const ordersList = document.getElementById('ordersList');
+                    ordersList.innerHTML = ''; // Clear existing orders
+                    orders.forEach(function(order) {
+                        const orderElement = document.createElement('li');
+                        let foodsHTML = order.foods.map(item => `<li>${item.name}: ${item.quantity}</li>`).join('');
+                        orderElement.innerHTML = `
+                            Order from MOM AI Assistant<br><br>
+                            Made at: ${order.timestamp}<br><br>
+                            <ul>${foodsHTML}</ul>
+                        `;
+                        ordersList.appendChild(orderElement);
+                    });
+                })
+                .catch(function (error) {
+                    console.error('Error fetching orders:', error);
+                });
+        }
+
+        setInterval(fetchOrders, 30000); // Fetch orders every 30 seconds
+        fetchOrders(); // Initial fetch of orders
+    </script>
+    
+</body>
+</html>
