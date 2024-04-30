@@ -1,1 +1,1 @@
-web: gunicorn app:app -t 60 --keep-alive 60
+web: gunicorn app_socketio:app -t 60 --keep-alive 60
