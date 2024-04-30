@@ -156,6 +156,17 @@
                     console.error('Error fetching orders:', error);
                 });
         }
+          
+        if (Notification.permission === "default") {
+            Notification.requestPermission().then(permission => {
+                if (permission === "granted") {
+                    console.log("Notification permission granted.");
+                } else {
+                    console.log("Notification permission denied.");
+                }
+            });
+        }
+
 
         setInterval(fetchOrders, 30000); // Fetch orders every 30 seconds
         fetchOrders(); // Initial fetch of orders
